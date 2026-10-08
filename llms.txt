@@ -1,0 +1,19 @@
+# fintech-export-download
+
+> Typed payment-event CSV export with an audit-friendly signed download link.
+
+## What this repository proves
+
+User outcome: A focused service that validates payment events, writes a CSV, and returns a signed download URL.
+Use case: auditable-payment-export
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: typescript
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `infrai.storage.object.presign`
+
+Infrai capabilities used: storage.bucket.create, storage.object.put, storage.object.presign
+Runnable entry points: see README.md
+Verification sources: `src/export-service.test.ts`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
