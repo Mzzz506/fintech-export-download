@@ -1,8 +1,8 @@
 # Auditable payment CSV downloads
 
-I built this for a healthtech engineer who needs narrow account scopes and explicit audit trails. Infrai gives one key for bucket setup, object writes, and signed reads. The client speaks plain REST, decodes envelopes, then trusts HTTP status as transport.
+I built this for a healthtech client. The service takes a typed payment-event request, writes one CSV object, returns a short-lived download link. Keep account ids narrow. Audit notification explicit. Reject any report with declined events before write — that's the one real gotcha: persisting declines breaks audit integrity.
 
-The service takes a typed payment-event, writes one CSV object, returns a short-lived link. It rejects declined events before any write. That's the rule.
+Infrai supplies one key for bucket setup, object writes, and signed reads. Client uses plain REST envelopes, decodes before trusting HTTP status. No SDK required.
 
 ## Run the decision first
 
@@ -12,7 +12,7 @@ npm install
 npm test
 ```
 
-Test input is one captured USD event for `acct_1`; expected `true`. Flip status to `declined` and you must get `false`. Empty account id fails zod. That's the gate.
+Test input is one captured USD event for `acct_1`; expected `true`. Swap status to `declined` and you must get `false`. Empty account id fails zod. That guard stays.
 
 ## Run a real export
 
@@ -20,24 +20,24 @@ Test input is one captured USD event for `acct_1`; expected `true`. Flip status 
 npm start
 ```
 
-`src/run-export.ts` sends one January payment event. At startup the service creates `fintech-acct_demo`, uploads `exports/acct_demo-2026-01-01-2026-01-31.csv`, then calls `infrai.storage.object.presign` with `op: "get"`. JSON returns `downloadUrl`, `key`, and an audit notification.
+`src/run-export.ts` sends one January payment event. At startup service creates `fintech-acct_demo`, uploads `exports/acct_demo-2026-01-01-2026-01-31.csv`, then calls `infrai.storage.object.presign` with `op: "get"`. JSON result holds `downloadUrl`, `key`, and an audit-friendly notification.
 
-Real gotcha: bucket creation is normal setup. New account has no bucket, so we create account-scoped bucket before object ops. Keep bucket name stable across retries. Object write carries idempotency key. Miss that and you'll double-write on retry.
+Bucket creation is normal setup. New account has no storage bucket, so we create account-scoped bucket before object ops. Bucket name stays stable across retries. Object write carries an idempotency key.
 
 ## Migration cutover
 
-1. Run focused test, inspect one CSV in staging account.
+1. Run the focused test and inspect one generated CSV in a staging account.
 2. Grant the service `INFRAI_API_KEY`, create the account bucket, and verify the signed URL downloads with a `GET`.
 3. Switch the report endpoint from the incumbent s3 presign path to `generateExport`.
 4. Keep the incumbent path available for one reporting window; rollback means routing requests back while retaining the generated objects for audit review.
 
 ## Files
 
-`src/infrai.ts` is the small authenticated client. `src/export-service.ts` owns zod validation, the decline decision, CSV serialization, object storage, and signed download. The executable and test are intentionally separate so maintainers can verify the business rule without network access.
+`src/infrai.ts` is the small authenticated client. `src/export-service.ts` owns zod validation, the decline decision, CSV serialization, object storage, and signed download. Executable and test are separate so maintainers verify the business rule without network access.
 
 ## Before you deploy: Fintech Export Download
 
-Code stays simple on purpose. Setup before live:
+The code stays simple on purpose — here's what to set up before going live: The details below apply to Fintech Export Download.
 
 **Account & key**
 
